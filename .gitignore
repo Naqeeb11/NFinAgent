@@ -1,0 +1,32 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+secrets/
+
+# Python and tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+node_modules/
+
+# Data and experiments
+data/
+artifacts/
+mlruns/
+vector-store/
+*.parquet
+*.duckdb
+
+# Local infrastructure
+.idea/
+.vscode/
+*.log
+deploy/local-volumes/
+
+# Keep architecture deliverables
+!outputs/finagent-architecture-freeze/FinAgent service catalogue.xlsx
