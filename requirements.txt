@@ -1,0 +1,18 @@
+# Database and ORM
+sqlalchemy
+psycopg2-binary
+python-dotenv
+
+# Data Sources
+alpaca-py
+yfinance
+requests
+
+# ML and Sentiment Analysis
+transformers
+torch
+ollama
+
+# Testing
+pytest
+pytest-mock

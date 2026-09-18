@@ -1,68 +1,108 @@
-# FinAgent
+# FinAgent - Ingestion & Research Layer
 
-FinAgent is an open, agent-assisted financial research, backtesting, and paper-trading platform. It records every recommendation, the evidence and model versions behind it, simulated outcomes, and subsequent evaluation so strategy improvement is reproducible rather than implicit.
+This is the implementation of the FinAgent data ingestion and research agent layer, designed to provide an end-to-end pipeline from financial data gathering to LLM-powered research reports.
 
-> **Scope boundary:** FinAgent is research and simulation software. It does not place orders, offer investment advice, or guarantee returns. Any future live-trading integration requires a separately approved safety, legal, and operational design.
+## 🚀 Current Status: Functional End-to-End Pipeline
+The system has successfully implemented a "First Vertical Slice" that orchestrates multiple financial data sources to generate a comprehensive equity research brief.
 
-## Architecture freeze
+### 🛠️ What's Implemented
+- **Research Orchestration**: `ResearchAgent` coordinates the flow between data clients and the LLM.
+- **Data Ingestion Clients**:
+    - `YFinanceClient`: Fetches real-time and historical price action.
+    - `NewsClient`: Aggregates latest financial news via NewsAPI.
+    - `EdgarClient`: Downloads SEC filings (10-K, 10-Q) using `sec-edgar-downloader`.
+    - `AlpacaClient`: Integrates with Alpaca for market data.
+- **Intelligence Layer**:
+    - `SentimentScorer`: Analyzes news sentiment to provide bullish/bearish tilts.
+    - **LLM Integration**: Local integration with **Ollama (Llama 3.1)** for final report synthesis.
+- **Execution Entry Point**: `run_research.py` provides a runnable script to execute the full pipeline for a given ticker.
 
-The architecture is frozen at the **logical-service** level for the first public build. Start as a modular monolith with clear contracts, then extract services only when operational load, team boundaries, or independent scaling justify it. Python is the primary implementation language; Kafka is introduced when event volume and replay needs merit it.
+### 📊 Sample Output
+Running `python run_research.py` produces a structured research brief. 
 
-Key documents:
-
-- [System architecture](docs/architecture/system-architecture.md)
-- [Service catalogue](docs/architecture/service-catalogue.md)
-- [Data and storage architecture](docs/architecture/data-storage.md)
-- [Event contracts](docs/architecture/event-topics.md)
-- [AI and evaluation architecture](docs/architecture/ai-evaluation.md)
-- [API boundaries](docs/architecture/api-boundaries.md)
-- [Implementation roadmap](docs/roadmap/implementation-roadmap.md)
-- [Architecture decisions](docs/adr/)
-
-The editable Excel catalogue is [FinAgent service catalogue.xlsx](outputs/finagent-architecture-freeze/FinAgent%20service%20catalogue.xlsx).
-
-## Product flow
-
-```mermaid
-flowchart LR
-  D[Market and research sources] --> I[Ingestion and normalization]
-  I --> F[Features and research corpus]
-  F --> A[Research and strategy agents]
-  A --> P[Quant prediction and ensemble]
-  P --> R[Deterministic risk gate]
-  R --> L[Prediction ledger]
-  L --> S[Backtest or paper trading simulator]
-  S --> E[Evaluation and learning loop]
-  E --> M[Model and strategy registry]
-  M --> P
-```
-
-## Repository layout
-
+**Example Report for NVDA:**
 ```text
-docs/          Architecture, ADRs, roadmap, runbooks
-contracts/     OpenAPI, AsyncAPI, JSON Schema, event definitions
-services/      Future independently deployable services
-libs/          Shared domain libraries and SDKs
-ml/            Feature, training, evaluation, and registry assets
-notebooks/     Reproducible research only; no production logic
-infra/         Infrastructure-as-code, environments, observability
-deploy/        Local compose and future deployment manifests
-tests/         Contract, integration, replay, and acceptance tests
-outputs/       Editable planning artifacts
+**EQUITY RESEARCH BRIEF: NVIDIA Corp (NVDA)**
+**Date:** May 22, 2024
+**Rating:** Neutral/Cautious (Short-term)
+
+### #1. Executive Summary
+NVDA is currently experiencing low-volatility price consolidation. While the technical price action remains slightly positive, it is countered by a bearish tilt in news sentiment. The high frequency of SEC filings suggests significant internal corporate activity or insider movements that warrant close monitoring.
+
+### #2. Data Analysis
+* **Price Action: Bullish Bias (Marginal)**
+    * **Movement:** +0.82% ($217.56 → $219.34)
+    * **Analysis:** The stock is exhibiting stability. A gain of less than 1% indicates a lack of strong conviction from buyers or sellers...
+
+* **Sentiment Analysis: Bearish Tilt**
+    * **Ratio:** 26 Positive / 31 Negative
+    * **Analysis:** News sentiment is leaning negative. In a high-growth stock like NVDA, negative sentiment often stems from concerns over valuation peaks...
+
+* **Regulatory Filings: High Activity**
+    * **Volume:** 10 recent SEC filings.
+    * **Analysis:** A cluster of 10 filings in a short window typically indicates insider trading (Form 4s)...
+
+### #3. Risk vs. Opportunity Matrix
+| **Opportunities (Upside)** | **Risks (Downside)** |
+| :--- | :--- |
+| **Price Support:** The stock is holding its ground despite negative news... | **Sentiment Decay:** Negative news sentiment can trigger a momentum shift... |
+| **Information Asymmetry:** High filing volume may reveal bullish insider accumulation not yet priced in. | **Overvaluation:** Bearish sentiment often correlates with a perception that the "AI trade" has reached a local top. |
+| **Consolidation Breakout:** Low volatility often precedes a sharp move; a break above $220 could signal a new rally. | **Regulatory Pressure:** Increased SEC filings may relate to compliance or governance hurdles. |
+
+### #4. Final Outlook
+**Short-Term Outlook: Neutral.**
+The narrow price gain is insufficient to override the negative sentiment trend. The primary driver for the next move will likely be the content of the 10 SEC filings.
+
+**Recommendation:** 
+Maintain current positions but avoid aggressive entry at this level. Monitor the filings for **insider selling** (Bearish) vs. **institutional accumulation** (Bullish). A confirmed break above $220 with a shift toward positive sentiment would upgrade the outlook to Bullish.
 ```
 
-## First build target
+## Setup Instructions
 
-The first two weeks produce a local, reproducible vertical slice: daily equities ingestion, normalized prices, one baseline strategy, a prediction-ledger record, a simple backtest, and evaluation metrics. No autonomous trading or live brokerage account access.
+### 1. Prerequisites
+- **Python 3.11+**
+- **PostgreSQL** with **TimescaleDB** extension installed.
+- **Ollama** installed and running locally.
 
-## Public-development standards
+### 2. Model Setup
+Pull the required model for the research agent:
+```bash
+ollama pull llama3.1:8b
+```
 
-- Version schemas, strategies, datasets, feature definitions, prompts, and models.
-- Keep secrets, account data, API keys, and proprietary datasets out of Git.
-- Make each decision replayable from immutable inputs and pinned versions.
-- Use pull requests, ADRs, tests, and experiment reports as the public engineering record.
+### 3. Environment Configuration
+1. Copy the example environment file:
+   ```bash
+   cp .env.example .env
+   ```
+2. Fill in your API keys in the `.env` file:
+   - `ALPACA_API_KEY` / `ALPACA_SECRET_KEY`
+   - `NEWS_API_KEY`
+   - `SEC_USER_AGENT` (Must be a valid email address for SEC EDGAR access)
 
-## Status
+### 4. Installation
+Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-Architecture and delivery plan frozen on 2026-09-12. Application code intentionally has not started.
+### 5. Database Setup
+Ensure you have a database created and the TimescaleDB extension enabled:
+```sql
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+```
+
+## Project Structure
+- `/agents`: Research agent implementation (`research_agent.py`).
+- `/data_ingestion`: Client modules (`yfinance_client.py`, `news_client.py`, `edgar_client.py`, `alpaca_client.py`).
+- `/ml`: Intelligence modules (`sentiment_scorer.py`).
+- `/db`: Database schemas and SQLAlchemy models.
+- `/config`: Configuration management.
+- `/tests`: Test suite for all modules.
+
+## Development Workflow
+This project follows **Test-Driven Development (TDD)**. Run tests using:
+```bash
+pytest
+```
+

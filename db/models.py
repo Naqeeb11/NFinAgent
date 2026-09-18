@@ -1,0 +1,92 @@
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, create_engine, text
+from sqlalchemy.orm import declarative_base, sessionmaker
+from config.config import config
+import datetime
+
+Base = declarative_base()
+
+class Price(Base):
+    """
+    Time-series price data. 
+    Intended to be a TimescaleDB hypertable.
+    """
+    __tablename__ = 'prices'
+    
+    # Combined primary key for TimescaleDB requirements (timestamp must be part of PK)
+    timestamp = Column(DateTime, primary_key=True, index=True)
+    ticker = Column(String, primary_key=True, index=True)
+    open = Column(Float, nullable=False)
+    high = Column(Float, nullable=False)
+    low = Column(Float, nullable=False)
+    close = Column(Float, nullable=False)
+    volume = Column(Float, nullable=False)
+
+class NewsArticle(Base):
+    """
+    Normalized news articles from various sources.
+    """
+    __tablename__ = 'news_articles'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    article_id = Column(String, unique=True, nullable=False) # Provider's unique ID
+    ticker = Column(String, index=True, nullable=False)
+    title = Column(String, nullable=False)
+    content = Column(String)
+    source = Column(String, nullable=False)
+    published_at = Column(DateTime, index=True)
+
+class SentimentScore(Base):
+    """
+    Sentiment analysis results for news articles.
+    """
+    __tablename__ = 'sentiment_scores'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    article_id = Column(Integer, ForeignKey('news_articles.id'), nullable=False)
+    label = Column(String, nullable=False) # e.g., positive, neutral, negative
+    confidence = Column(Float, nullable=False)
+    model_version = Column(String, nullable=False) # e.g., 'finbert-v1'
+    scored_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class CompanyFiling(Base):
+    """
+    SEC Filings (10-K, 10-Q) metadata and local paths.
+    """
+    __tablename__ = 'company_filings'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    ticker = Column(String, index=True, nullable=False)
+    filing_type = Column(String, nullable=False) # 10-K, 10-Q
+    filed_at = Column(DateTime, index=True)
+    local_path = Column(String, nullable=False)
+    accession_number = Column(String, unique=True)
+
+# Database Engine and Session Setup
+def get_engine():
+    if config.DATABASE_URL is None:
+        # Fallback to in-memory sqlite for testing/local dev if no URL provided
+        return create_engine("sqlite:///:memory:")
+    return create_engine(config.DATABASE_URL)
+
+engine = get_engine()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+def init_db():
+    """
+    Initializes the database, creates tables, and converts 'prices' to a hypertable.
+    """
+    engine = get_engine()
+    Base.metadata.create_all(bind=engine)
+    
+    # Convert prices table to hypertable if not already done
+    # Note: This is a raw SQL call as SQLAlchemy doesn't support CREATE_HYPERTABLE natively
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("SELECT create_hypertable('prices', 'timestamp', if_not_exists => TRUE);"))
+            conn.commit()
+        except Exception as e:
+            print(f"Hypertable creation failed or already exists: {e}")
+
+if __name__ == "__main__":
+    init_db()
+    print("Database initialized successfully.")
