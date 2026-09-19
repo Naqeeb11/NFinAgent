@@ -84,12 +84,15 @@ class AlpacaClient:
             else:
                 # Normalize alpaca-py BarSet format
                 prices = []
-                # data.df is a pandas DataFrame provided by alpaca-py
-                df = data.df
-                for timestamp, row in df.iterrows():
+                # data.df is a pandas DataFrame provided by alpaca-py, indexed by
+                # a (symbol, timestamp) MultiIndex even for a single ticker.
+                # Reset the index so 'timestamp' becomes a plain column instead of
+                # iterrows() yielding the whole (symbol, timestamp) tuple as the index.
+                df = data.df.reset_index()
+                for _, row in df.iterrows():
                     prices.append(Price(
                         ticker=ticker,
-                        timestamp=timestamp,
+                        timestamp=row['timestamp'],
                         open=row['open'],
                         high=row['high'],
                         low=row['low'],

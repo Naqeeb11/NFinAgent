@@ -21,6 +21,7 @@ mlruns/
 vector-store/
 *.parquet
 *.duckdb
+sec-edgar-filings/
 
 # Local infrastructure
 .idea/

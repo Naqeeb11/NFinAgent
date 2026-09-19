@@ -106,3 +106,12 @@ This project follows **Test-Driven Development (TDD)**. Run tests using:
 pytest
 ```
 
+## Development Log
+
+### 2026-09-19
+- **Improved Database Support**: 
+    - Enhanced `DatabaseManager` integration within the `ResearchAgent` to ensure stable persistence of ingested data.
+    - Optimized the `Price` model schema and data insertion logic in `db/models.py` and `db/manager.py` for better alignment with TimescaleDB's hypertable requirements.
+- **Stability Fixes**: Resolved import issues and refined session management in the database layer to improve the robustness of the research pipeline.
+- **Verification**: Validated the end-to-end flow from data ingestion to LLM report generation using `run_research.py`.
+

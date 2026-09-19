@@ -7,10 +7,15 @@ logging.basicConfig(level=logging.INFO)
 def main():
     # Initialize the Research Agent
     # This will internally initialize Alpaca, yFinance, News, and Edgar clients
+    # Initialize Database
+    from db.models import init_db
+    init_db()
+    
+
     agent = ResearchAgent()
     
     # You can change this ticker to any company you want to research
-    ticker = "NVDA" 
+    ticker = "GOOG" 
     
     print("\n" + "="*50)
     print(f"FINAGENT RESEARCH REPORT: {ticker}")
