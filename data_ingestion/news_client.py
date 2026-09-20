@@ -1,6 +1,6 @@
 import logging
 import requests
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from db.models import NewsArticle
 from config.config import config
@@ -19,28 +19,61 @@ class NewsClient:
 
     def fetch_news(self, ticker: str) -> List[NewsArticle]:
         """
-        Fetches news articles related to the ticker and returns a list of NewsArticle models.
+        Fetches general recent news articles related to the ticker,
+        sorted by publish date.
+        """
+        logger.info(f"Fetching news for {ticker}...")
+        return self._request(
+            query=ticker,
+            ticker=ticker,
+            sort_by='publishedAt',
+            page_size=None,
+        )
+
+    def search_news(self, ticker: str, query: str, limit: int = 3) -> List[NewsArticle]:
+        """
+        Searches news for a specific concern related to the ticker
+        (e.g. query='lawsuits' or 'supply chain'), sorted by relevancy.
+        Used by ResearchAgent's targeted follow-up tool calls.
+        """
+        combined_query = f"{ticker} {query}"
+        logger.info(f"Searching news for {ticker} with query: {query}")
+        return self._request(
+            query=combined_query,
+            ticker=ticker,
+            sort_by='relevancy',
+            page_size=limit,
+        )
+
+    def _request(self, query: str, ticker: str, sort_by: str, page_size: Optional[int]) -> List[NewsArticle]:
+        """
+        Shared request/parsing logic for fetch_news and search_news, so both
+        go through the same error handling and NewsArticle normalization.
         """
         params = {
-            'q': ticker,
+            'q': query,
             'apiKey': self.api_key,
             'language': 'en',
-            'sortBy': 'publishedAt'
+            'sortBy': sort_by,
         }
-        
+        if page_size:
+            params['pageSize'] = page_size
+
         try:
-            logger.info(f"Fetching news for {ticker}...")
             response = requests.get(self.base_url, params=params, timeout=10)
             response.raise_for_status()
             data = response.json()
-            
+
             if data.get("status") != "ok":
                 logger.error(f"News API returned error: {data.get('message')}")
                 return []
 
+            items = data.get("articles", [])
+            if page_size:
+                items = items[:page_size]
+
             articles = []
-            for item in data.get("articles", []):
-                # Normalize the response to the NewsArticle model
+            for item in items:
                 article = NewsArticle(
                     article_id=item.get("url"),
                     ticker=ticker,
@@ -50,7 +83,7 @@ class NewsClient:
                     published_at=self._parse_date(item.get("publishedAt"))
                 )
                 articles.append(article)
-                
+
             return articles
 
         except requests.exceptions.RequestException as e:

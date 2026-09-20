@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 secrets/
+NFinAgent_Roadmap.txt
 
 # Python and tooling
 __pycache__/

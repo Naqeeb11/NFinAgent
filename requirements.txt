@@ -12,6 +12,8 @@ requests
 transformers
 torch
 ollama
+pandas
+pandas_ta
 
 # Testing
 pytest
