@@ -96,7 +96,11 @@ class ResearchAgent:
                     'source': {'name': getattr(article, 'source', 'unknown')},
                     'publishedAt': article.published_at
                 },
-                sentiment={'label': score.label, 'score': score.confidence, 'model': 'finbert-v1'}
+                # Use the sentiment scorer's own model name rather than a
+                # hardcoded string, so the audit trail actually reflects
+                # which model produced this score -- this matters a lot
+                # for a project whose whole point is tracking that.
+                sentiment={'label': score.label, 'score': score.confidence, 'model': score.model_version}
             )
 
             sentiment_summaries.append({
@@ -115,7 +119,10 @@ class ResearchAgent:
                     filing_type=f_type,
                     local_path=f.local_path,
                     accession_number=f.accession_number,
-                    filed_at=f.filed_at
+                    filed_at=f.filed_at,
+                    # This was missing: without it, save_filing has nothing
+                    # to chunk/embed and filing_chunks stays empty forever.
+                    content=getattr(f, 'extracted_content', None),
                 )
                 filings_metadata.append(f)
 
@@ -155,8 +162,11 @@ class ResearchAgent:
                     continue
 
                 latest_file, _ = files[-1]
-                with open(latest_file, 'r', encoding='utf-8', errors='ignore') as f:
-                    content = f.read()
+                # Use extract_text() rather than a raw read so HTML tags are
+                # stripped first -- otherwise the section-boundary regex below
+                # is searching text still full of markup, which can break the
+                # match or return tag soup mixed into the excerpt.
+                content = self.edgar_client.extract_text(latest_file)
 
                 pattern = re.compile(
                     rf"{re.escape(section_name)}.*?(?=\n\s*ITEM|\n\s*Part|\Z)",
@@ -315,7 +325,7 @@ class ResearchAgent:
             response = ollama.generate(model=self.llm_model, prompt=final_prompt)
             report_content = response['response']
 
-            rating = "Neutral"
+            rating = "Hold"
             if "Buy" in report_content:
                 rating = "Buy"
             elif "Sell" in report_content:

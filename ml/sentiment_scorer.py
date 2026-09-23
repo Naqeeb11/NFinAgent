@@ -21,9 +21,18 @@ class SentimentScorer:
                 from transformers import pipeline
                 logger.info(f"Loading FinBERT model: {self.MODEL_NAME}...")
                 self._sentiment_pipeline = pipeline(
-                    "sentiment-analysis", 
-                    model=self.MODEL_NAME, 
-                    tokenizer=self.MODEL_NAME
+                    "sentiment-analysis",
+                    model=self.MODEL_NAME,
+                    tokenizer=self.MODEL_NAME,
+                    # Let the tokenizer truncate by actual token count (FinBERT's
+                    # real limit), rather than slicing the raw string by character
+                    # count beforehand. text[:2000] characters could still be well
+                    # over 512 tokens for dense financial text, which either
+                    # silently scored on partial garbage or could error depending
+                    # on the transformers version -- this way truncation is
+                    # correct and explicit instead of a guessed stand-in.
+                    truncation=True,
+                    max_length=512,
                 )
             except Exception as e:
                 logger.error(f"Failed to load FinBERT model: {e}")
@@ -43,10 +52,10 @@ class SentimentScorer:
             )
 
         try:
-            # FinBERT handles texts up to 512 tokens. 
-            # For longer texts, we truncate (simplification for this implementation).
-            result = self.pipeline(text[:2000])[0]
-            
+            # Pass the full text -- truncation=True/max_length=512 on the
+            # pipeline itself now handles the length limit correctly.
+            result = self.pipeline(text)[0]
+
             return SentimentScore(
                 article_id=article_id,
                 label=result['label'].lower(),

@@ -15,7 +15,7 @@ def main():
     agent = ResearchAgent()
     
     # You can change this ticker to any company you want to research
-    ticker = "GOOG" 
+    ticker = "AAPL" 
     
     print("\n" + "="*50)
     print(f"FINAGENT RESEARCH REPORT: {ticker}")

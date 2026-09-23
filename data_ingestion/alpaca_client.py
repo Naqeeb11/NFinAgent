@@ -58,6 +58,7 @@ class AlpacaClient:
         """
         Fetches historical price data for a ticker and returns a list of Price models.
         """
+        logger.info(f"Initiating historical price fetch for {ticker} from {start_date} to {end_date}...")
         start_dt = datetime.strptime(start_date, "%Y-%m-%d")
         end_dt = datetime.strptime(end_date, "%Y-%m-%d")
         

@@ -15,6 +15,8 @@ class YFinanceClient:
         """
         Fetches historical OHLCV data for a ticker and returns a list of Price models.
         """
+        logger.info(f"Initiating yfinance historical price fetch for {ticker} from {start_date} to {end_date}...")
+
         try:
             ticker_obj = yf.Ticker(ticker)
             # yfinance history returns a pandas DataFrame

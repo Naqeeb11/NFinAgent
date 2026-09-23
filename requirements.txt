@@ -2,6 +2,7 @@
 sqlalchemy
 psycopg2-binary
 python-dotenv
+pgvector
 
 # Data Sources
 alpaca-py
@@ -12,8 +13,10 @@ requests
 transformers
 torch
 ollama
+sentence-transformers
 pandas
 pandas_ta
+beautifulsoup4
 
 # Testing
 pytest
